@@ -8,4 +8,8 @@ import gamelogic
 import graphics
 
 
+#Initalize game 
+pregame.Initalize()
+
+gamelogic.Play()
 
