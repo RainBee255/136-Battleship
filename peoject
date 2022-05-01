@@ -1,0 +1,46 @@
+def place_ship_on_grid(row, col, direction, length):
+
+    if direction == "left":
+        if col - length < 0:
+            return False
+
+    if direction == "right":
+        if col + length >grid:
+            return False
+
+    if direction == "up":
+        if row - length < 0:
+            return False
+
+    if direction == "down":
+        if row + length >grid_size:
+            return False
+    retrun play_ship_on_grid
+            
+def generate_grid():
+    "create a 10x10 grid to place ships in different directions"
+    
+    random.seed(time.time())
+
+    rows, cols = (grid_size, grid_size)
+
+    grid = []
+    for rows in range:
+        row = []
+    for cols in range:
+        row.append(random.choice([".","X"]))
+        grid.append(row)
+    return grid
+
+    num_of_ships_placed = 0
+
+    while num_of_ships_placed != num_of_ships:
+        random_row = random.randint(0, rows - 1)
+        random_col = random.randint(0, cols - 1)
+        direction = random.choice(["left", "right", "up", "down"])
+        
+def draw_grid():
+    for row in range(len_grid):
+        print('.',join(the_grid[i]))
+
+        
