@@ -5,205 +5,286 @@
 def Play():
     While(True): 
         import sys
-import pygame
-from random import randint
-#Board for holding ship locations
-PLAYER_BOARD = [[""] * 10 for x in range(10)]
-COMPUTER_BOARD = [[""] * 10 for x in range(10)]
-#Board for displaying hits and misses
-PLAYER_GUESS_BOARD = [[""] * 10 for x in range(10)]
-COMPUTER_GUESS_BOARD = [[""] * 10 for x in range(10)]
-SIZE_OF_SHIPS = {"carrier": 5, "battleship": 4, "cruiser": 3, "submarine": 3, "destroyer": 2}
-letters_to_numbers = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5,'G': 6, 'H': 7, 'I': 8, 'J': 9}
-SHIP_TYPES = ('Carrier, Battleship, Cruiser, Submarine, Destroyer')
+import copy, random
 
+#letters_to_numbers = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5,'G': 6, 'H': 7, 'I': 8, 'J': 9}
+# class to contain all of the battleship game
+class BattleshipGame:
+    # function to print the 
+    def print_board(self, s, board):
+        # see if computer or user turn
+        player = "Computer"
+        if s == "u":
+            player = "User"
+        print(""+ player + "'s Grid")
+        print("            ")
+        # print the horiz numbers
+        print("   A   B   C   D   E   F   G   H   I   J")
+        print("                                        ")
+        for i in range(10):
+            # print the vertical line number
+            if i != 9:
+                print(str(i + 1), end=' ')
+            else:
+                print(str(i + 1), end=' ')
+            # print the board values
+            for j in range(10):
+                if board[i][j] == -1:
+                    print(end=' ')
+                elif s == "u":
+                    print(board[i][j], end=' ')
+                elif s == "c":
+                    if board[i][j] == "O" or board[i][j] == "X":
+                        print(board[i][j], end=' ')
+                    else:
+                        print(" ", end=' ')
+                if j != 10:
+                    print(". ", end=' ')
+            print()
+            
 
-#create board
-def print_board(board):
-    print("  A B C D E F G H I J")
-    #print("                     ")
-    row_number = 1
-    for row in board:
-        print("%d %s " % (row_number, ". ".join(row)))
-        row_number += 1
+# function to let the user place the ships
+    def user_place_ships(self, board, ships):
+        #lets the user place ships and also check if they are valid positions
+        for ship in list(ships.keys()):
+            # get coords and validate position
+            valid = False
+            while (not valid):
+                self.print_board("u", board)
+               # print("Placing a/an " + ship)
+                type_of_ship = self.ship_type()
+                x, y = self.get_coor()
+                ori = self.v_or_h()
+                valid = self.validate(board, ships[ship], x, y, ori)
+                if not valid:
+                    print("Illegal placement")
+                    #input("Press enter to continue")
+            # place the ship
+            board = self.place_ship(board, ships[ship], ship[0], ori, x, y)
+            self.print_board("u", board)
+        input("No more ships to set. Ready to play.")
+        return board
 
-#create ship placement
-def place_ships(board):
-    #loop through size of ships
-    for ship_size in SIZE_OF_SHIPS:
-        #loop until ship fits and doesn't overlap
-        while True:
-            if board == COMPUTER_BOARD:
-                 orientation, row,column = random.choice(["H", "V"]), random.randint(0,9), random.randint(0,9)
-            if check_ship_fit(ship_size, row, column, orientation):
-                #check if ship overlaps
-                if ship_overlaps(board, row, column, orientation, ship_size) == False:
-                    #place ship
-                    if orientation == "H":
-                        for i in range(column, column + ship_size):
-                            board[row][i] = "X"
+    # let the computer place/validate ships
+    def computer_place_ships(self, board, ships):
+        #computer will user random to generate ship places
+        for ship in list(ships.keys()):
+            # genreate random coordinates and validate the postion
+            valid = False
+            while (not valid):
+                # use randint from import random
+                x = random.randint(1, 10) - 1
+                y = random.randint(1, 10) - 1
+                o = random.randint(0, 1)
+                # vertical or horiz
+                if o == 0:
+                    ori = "v"
                 else:
-                        for i in range(row, row + ship_size):
-                            board[column][i] = "X"
-                print_board(COMPUTER_BOARD)
-                break
-            else:
-                place_ship = True
-                print('Place ship with size of ' + str(ship_size))
-                row, column, orientation = user_input(place_ship)
-                if check_ship_fit(ship_size, row, column, orientation):
-                #check if ship overlaps
-                    if ship_overlaps(board, row, column, orientation, ship_size) == False:
-                    #place ship
-                        for i in range(column, column + ship_size):
-                            board[row][i] = "X"
-                    else:
-                        for i in range(row, row + ship_size):
-                            board[column][i] = "X"
-                    print_board(PLAYER_BOARD)
-                break
+                    ori = "h"
+                valid = self.validate(board, ships[ship], x, y, ori)
+            # place the ship
+            print("Computer placing " + ship)
+            board = self.place_ship(board, ships[ship], ship[0], ori, x, y)
+        return board
 
-
-#check if ship fits in board
-def check_ship_fit(SHIP_SIZE, row, column):
-        if column + SHIP_SIZE > 10:
-            return False
-        else:
-            return True
-        if row + SHIP_SIZE > 10:
-            return False
-        else:
-            return True
+    # let the user place a ship
+    def place_ship(self, board, ship, s, ori, x, y):
+        #accepts board, ship size, and position, places ship, it should already be verified by user_place_ships function
         
-def ship_overlaps(board, row,column, orientation,  ship_size):
-    if orientation == "H":
-        for i in range(column, column + ship_size):
-            if board[row][i] == "X":
-                return True
-            else:
-                for i in range(row, row + ship_size):
-                    if board[column][i] == "X":
-                        return True
-                    else:
-                        return False
+        # orient ships
+        if ori == "v":
+            for i in range(ship):
+                board[x + i][y] = s
+        elif ori == "h":
+            for i in range(ship):
+                board[x][y + i] = s
+        return board
 
-def user_input(place_ship):
-    if place_ship == True:
-        while True:
-            try:
-                orientation = input("Enter orientation (H or V): ").upper()
-                if orientation == "H" or orientation == "V":
-                    break
-            except TypeError:
-                print('Enter a valid orientation H or V')
-        while True:
-            try:
-                row = input("Enter the row 1-10 of the ship: ")
-                if row in '12345678910':
-                    row = int(row) - 1
-                    break
-            except ValueError:
-                print('Enter a valid letter between 1-10')
-        while True:
-            try:
-                column = input("Enter the column of the ship: ").upper()
-                if column in 'ABCDEFGHIJ':
-                     column = LETTERS_TO_NUMBERS[column]
-                     break
-            except KeyError:
-                    print('Enter a valid letter between A-J')
-            return row, column, orientation
+    # check if the ship fits
+    def validate(self, board, ship, x, y, ori):
+        #check if ship will fit, based on ship size, board, orientation, and coordinates
+        if ori == "v" and x + ship > 10:
+            return False
+        elif ori == "h" and y + ship > 10:
+            return False
         else:
-            while True:
-                try:
-                    row = input("Enter the row 1-10 of the ship: ")
-                    if row in '12345678910':
-                        row = int(row) - 1
-                        break
-                except ValueError:
-                        print('Enter a valid letter between 1-10')
-            while True:
-                try:
-                    column = input("Enter the column of the ship: ").upper()
-                    if column in 'ABCDEFGHIJ':
-                        column = LETTERS_TO_NUMBERS[column]
-                        break
-                except KeyError:
-                    print('Enter a valid letter between A-J')
-            return row, column
-            
-#count all hit ships
-def count_hit_ships(board):
-    count = 0
-    for row in board:
-        for column in row:
-            if column =="X":
-                count += 1
-    return count
+            if ori == "v":
+                for i in range(ship):
+                    if board[x + i][y] != -1:
+                        return False
+            elif ori == "h":
+                for i in range(ship):
+                    if board[x][y + i] != -1:
+                        return False
+        return True
 
-       
-#create ships
-#X for placing ships and hit ships
-#' ' for available space
-#'O' for missed spot
+    # see if ship is horizontal or vertical
+    def v_or_h(self):
+        # get ship orientation from user
+        while (True):
+            user_input = input("vertical or horizontal (V,H) ? ").upper()
+            if user_input == "V" or user_input == "H":
+                return user_input
+            else:
+                print("Invalid input. Please only enter V or H").upper()
 
+    
+    def get_coor(self):
+        #user will enter coordinates (row and column) for the ship to go
+        
+        while (True):
+            user_input = input("Please enter coordinates (row,col) ? ")
+            try:
+                # see that user entered 2 values seprated by comma
+                coor = user_input.split(",")
+                if len(coor) != 2:
+                    raise Exception("Invalid entry, too few/many coordinates.");
+                # check that 2 values are integers
+                coor[0] = int(coor[0]) - 1
+                coor[1] = int(coor[1]) - 1
+                # check that values of integers are between 1 and 10 for both coordinates
+                if coor[0] > 9 or coor[0] < 0 or coor[1] > 9 or coor[1] < 0:
+                    raise Exception("Invalid entry. Please use values between 1 to 10 only.")
+                # if everything is ok, return coordinates
+                return coor
+            # if the user enters something different
+            except ValueError:
+                print("Invalid entry. Please enter only numeric values for coordinates")
+            except Exception as e:
+                print(e)
 
-
-def create_ships(board):
-    for ship in range(5):
-        ship_row, ship_column = randint(0,9), randint(0,9)
-#check to avoid overlap
-        while board[ship_row][ship_column] == "X":
-            ship_row, ship_column = get_ship_location()
-        board[ship_row][ship_column] = "X"
-            
-#getting ship location
-def get_ship_location():
-    row = input("Please enter a ship row 1-10:")
-#if invalid answer inputed
-    while row not in "12345678910":
-        print('Please enter a valid row:')
-        row = input("Please enter a ship row 1-10:")
-    column = input("Please enter a ship column A-J:").upper()
-#if invalid answer inputed
-    while column not in 'ABCDEFGHIJ':
-        print('Please enter a valid column')
-        column = input('Please enter a ship column A-J').upper()
-    return int(row) - 1, letters_to_numbers[column]
+    def ship_type(self):
+        #get ship type from user
+        while (True):
+            print('1 Carrier, 1 Battleship, 1 Cruiser, 1 Submarine, 1 Destroyer')
+            user_input = input("Place a ship of your fleet:")
+            if user_input == "Carrier" or "Battleship" or "Cruiser" or "Submarine" or "Destroyer":
+                return user_input
+            else:
+                print("Invalid input.")
     
 
-create_ships(PLAYER_BOARD)
-turns = 10
-while turns > 0:
-    print('Welcome to battleship')
-    print_board(PLAYER_GUESS_BOARD)
-    row, column = get_ship_location()
-    if PLAYER_GUESS_BOARD[row][column] == "O":
-        print('You already guessed that')
-    elif PLAYER_BOARD[row][column] == "X":
-        print('Hit')
-        PLAYER_GUESS_BOARD[row][column] = "X"
-        turns -= 1
-    else:
-        print('Missed')
-        PLAYER_GUESS_BOARD[row][column] = "O"
-        turns -= 1
-        
-#check if all ships are hit
-    if count_hit_ships(PLAYER_GUESS_BOARD) == 5:
-        print("You won! Let's_play_again?")
-        break
-    #computer turn
-        print("You have " + str(turns) + " turns left")
-    if turns == 0:
-        print("You ran out of turns")
-
-        place_ships(COMPUTER_BOARD)
-        print_board(COMPUTER_BOARD)
-        place_ships(PLAYER_BOARD)
-        print_board(PLAYER_BOARD)
-        
+    # see what move does
+    def make_move(self, board, x, y):
+       # make the move on the board and return the board, modified
+        if board[x][y] == -1:
+            return "miss"
+        elif board[x][y] == 'O' or board[x][y] == 'X':
+            return "try again"
+        else:
+            return "hit"
 
 
+    def user_move(self, board):
+        #keep getting coordinates from the user and check if its a hit miss or sink
+    
+        while (True):
+            x, y = self.get_coor()
+            res = self.make_move(board, x, y)
+            if res == "hit":
+                print("Hit at " + str(x + 1) + "," + str(y + 1))
+                self.check_sink(board, x, y)
+                board[x][y] = 'X'
+                if self.check_win(board):
+                    return "WIN"
+            elif res == "miss":
+                print("Sorry, " + str(x + 1) + "," + str(y + 1) + " is a miss.")
+                board[x][y] = "O"
+            elif res == "try again":
+                print("Sorry, that coordinate was already hit. Please try again")
+            if res != "try again":
+                return board
+
+    
+    def computer_move(self, board):
+        #generate random coorindates for the computer to try using random same as user_move function, check for hit, sink, miss
+        while (True):
+            x = random.randint(1, 10) - 1
+            y = random.randint(1, 10) - 1
+            res = self.make_move(board, x, y)
+            if res == "hit":
+                print("Hit at " + str(x + 1) + "," + str(y + 1))
+                self.check_sink(board, x, y)
+                board[x][y] = 'X'
+                if self.check_win(board):
+                    return "WIN"
+            elif res == "miss":
+                print("Sorry, " + str(x + 1) + "," + str(y + 1) + " is a miss.")
+                board[x][y] = "O"
+            if res != "try again":
+                return board
+
+    
+    def check_sink(self, board, x, y):
+        #figure out which ship is hit, then see how many points still exist in the ship, then see if sunk.
+        #the ship is sunk if there are no more points left
+        if board[x][y] == "C":
+            ship = "Carrier"
+        elif board[x][y] == "B":
+            ship = "Battleship"
+        elif board[x][y] == "C":
+            ship = "Cruiser"
+        elif board[x][y] == "S":
+            ship = "Submarine"
+        elif board[x][y] == "D":
+            ship = "Destroyer"
+        # mark cell as hit and check if sunk
+        board[-1][ship] -= 1
+        if board[-1][ship] == 0:
+            print(ship + " Sunk")
+
+    
+    def check_win(self, board):
+        #once all ships are sunk, then someone wins, end game. If anything is not a hit, then return false
+        for i in range(10):
+            for j in range(10):
+                if board[i][j] != -1 and board[i][j] != 'O' and board[i][j] != 'X':
+                    return False
+        return True
+
+    # function called to start program
+    def main(self):
+        # types of ships
+        ships = {"Carrier": 5, "Battleship": 4, "Cruiser": 3, "Submarine": 3, "Destroyer": 2,}
+        # setup blank 10x10 board
+        board = []
+        for i in range(10):
+            board_row = []
+            for j in range(10):
+                board_row.append(-1)
+            board.append(board_row)
+        # setup user and computer boards
+        user_board = copy.deepcopy(board)
+        comp_board = copy.deepcopy(board)
+        # add ships in array
+        user_board.append(copy.deepcopy(ships))
+        comp_board.append(copy.deepcopy(ships))
+        # ship placement
+        user_board = self.user_place_ships(user_board, ships)
+        comp_board = self.computer_place_ships(comp_board, ships)
+        # game main loop
+        while (1):
+            # user move
+            self.print_board("c", comp_board)
+            comp_board = self.user_move(comp_board)
+            # check if user won
+            if comp_board == "WIN":
+                print("User WON! :)")
+                quit()
+            # display current computer board
+            self.print_board("c", comp_board)
+            input("To end user turn hit ENTER")
+            # computer move
+            user_board = self.computer_move(user_board)
+            # check if computer move
+            if user_board == "WIN":
+                print("Computer WON! :(")
+                quit()
+            # display user board
+            input("To end computer turn hit ENTER")
+
+
+root = BattleshipGame()
+root.main()
 
 
